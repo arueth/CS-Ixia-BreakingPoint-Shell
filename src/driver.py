@@ -8,93 +8,91 @@ from cloudshell.shell.core.driver_context import InitCommandContext, ResourceCom
 
 
 class IxiaBreakingPointDriver(ResourceDriverInterface):
+    def cleanup(self):
+        """
+        Destroy the driver session, this function is called everytime a driver instance is destroyed
+        This is a good place to close any open sessions, finish writing to log files
+        """
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] Logging out" % self.resource_name)
+        self.bps_session.logout()
+
     def __init__(self):
+        """
+        ctor must be without arguments, it is created with reflection at run time
+        """
+        self.bps_session = None
         self.cs_session = None
+        self.reservation_id = None
+        self.resource_name = None
 
     def initialize(self, context):
+        """
+        Initialize the driver session, this function is called everytime a new instance of the driver is created
+        This is a good place to load and cache the driver configuration, initiate sessions etc.
+        :param InitCommandContext context: the context the command runs on
+
+        """
         self.logger = get_qs_logger()
+        self.resource_name = context.resource.name
 
     def get_port_state(self, context):
-        self._handle_cs_session(context)
+        self._bps_session_handler(context)
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
 
-        address = context.resource.address
-        password_hash = context.resource.attributes['API Password']
-        reservation_id = context.reservation.reservation_id
-        resource_name = context.resource.name
-        username = context.resource.attributes['API User']
-
-        bps = BPS(address, username, self.cs_session.DecryptPassword(password_hash).Value)
-        bps.login()
-
-        port_state = bps.portsState()
-        self.cs_session.WriteMessageToReservationOutput(reservation_id,
-                                                        "[%s] Port state:\n%s" % (resource_name, pprint(port_state)))
-
-        bps.logout()
+        port_state = self.bps_session.portsState()
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                        "[%s] Port state:\n%s" % (
+                                                            self.resource_name, pprint(port_state)))
 
         return port_state
 
-    def run_test(self, context, ):
-        self._handle_cs_session(context)
+    def run_test(self, context):
+        self._bps_session_handler(context)
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
 
-        address = context.resource.address
-        password_hash = context.resource.attributes['API Password']
-        reservation_id = context.reservation.reservation_id
-        resource_name = context.resource.name
-        #test_name = context.resource.attributes['Test Name']
-        username = context.resource.attributes['API User']
-        res = self.cs_session.GetReservationDetails(reservation_id)
+        res = self.cs_session.GetReservationDetails(self.reservation_id)
         topo_att = res.ReservationDescription.TopologiesResourcesAttributeInfo
         for item in topo_att:
-            if item.AttributeName=='Test Name':
-                self.cs_session.WriteMessageToReservationOutput(reservation_id, str(item.AttributeValue).strip('[]\''))
+            if item.AttributeName == 'Test Name':
+                self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                                str(item.AttributeValue).strip('[]\''))
                 test_name = str(item.AttributeValue).strip('[]\'')
 
-        try:
-            self.cs_session.WriteMessageToReservationOutput(reservation_id, "[%s] Logging in" % resource_name)
-            bps = BPS(address, username, self.cs_session.DecryptPassword(password_hash).Value)
-            bps.login()
-        except BPS.LoginException as err:
-            self.cs_session.WriteMessageToReservationOutput(reservation_id,
-                                                            "[%s] Failed to login, return code: %s - %s" % (
-                                                                resource_name, err.status_code, err.message))
-            raise
-        except:
-            raise
-
-        self.cs_session.WriteMessageToReservationOutput(reservation_id, "[%s] Reserving ports" % resource_name)
-        bps.reservePorts(slot=1, portList=[0, 1], group=1, force=True)
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                        "[%s] Reserving ports" % self.resource_name)
+        self.bps_session.reservePorts(slot=1, portList=[0, 1], group=1, force=True)
 
         try:
-            test_id = bps.runTest(modelname=test_name, group=1)
+            test_id = self.bps_session.runTest(modelname=test_name, group=1)
         except BPS.TestException as err:
-            self.cs_session.WriteMessageToReservationOutput(reservation_id,
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
                                                             "[%s] Failed to start test, return code: %s - %s" % (
-                                                                resource_name, err.status_code, err.message))
+                                                                self.resource_name, err.status_code, err.message))
             raise
         except:
             raise
 
-        self.cs_session.WriteMessageToReservationOutput(reservation_id, "[%s] Running test '%s' with ID %s" % (
-            resource_name, test_name, test_id))
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] Running test '%s' with ID %s" % (
+            self.resource_name, test_name, test_id))
 
         progress = 0
         while (progress < 100):
-            progress = bps.getRTS(test_id)
-            # self.cs_session.WriteMessageToReservationOutput(reservation_id, "%s%%" % progress)
+            progress = self.bps_session.getRTS(test_id)
+            # self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "%s%%" % progress)
             time.sleep(1)
         time.sleep(1)
 
-        test_result = bps.getTestResult(test_id)
-        self.cs_session.WriteMessageToReservationOutput(reservation_id, "[%s] %s" % (resource_name, test_result))
+        test_result = self.bps_session.getTestResult(test_id)
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                        "[%s] %s" % (self.resource_name, test_result))
 
-        self.cs_session.WriteMessageToReservationOutput(reservation_id, "[%s] Releasing ports" % resource_name)
-        bps.unreservePorts(slot=1, portList=[0, 1])
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                        "[%s] Releasing ports" % self.resource_name)
+        self.bps_session.unreservePorts(slot=1, portList=[0, 1])
 
-        self.cs_session.WriteMessageToReservationOutput(reservation_id, "[%s] Logging out" % resource_name)
-        bps.logout()
-
-    def _handle_cs_session(self, context):
+    def _cs_session_handler(self, context):
         for attempt in range(3):
             try:
                 self.cs_session = CloudShellAPISession(host=context.connectivity.server_address,
@@ -106,6 +104,23 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
                 break
         else:
             raise
+
+    def _bps_session_handler(self, context):
+        self.resource_name = context.resource.name
+
+        address = context.resource.address
+        password_hash = context.resource.attributes['API Password']
+        username = context.resource.attributes['API User']
+        try:
+            self.bps_session = BPS(address, username, self.cs_session.DecryptPassword(password_hash).Value)
+            self.bps_session.login()
+        except BPS.LoginException as err:
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] Failed to login, return code: %s - %s" %
+                                                            (self.resource_name,
+                                                             err.status_code,
+                                                             err.message)
+                                                            )
 
     # <editor-fold desc="Orchestration Save and Restore Standard">
     def orchestration_save(self, context, cancellation_context, mode, custom_params=None):
