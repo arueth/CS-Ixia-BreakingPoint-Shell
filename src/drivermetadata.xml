@@ -1,0 +1,31 @@
+<Driver Description="Describe the purpose of your CloudShell shell" MainClass="driver.IxiaBreakingPointDriver"
+        Name="Ixia BreakingPoint Driver" Version="1.0.0">
+    <Layout>
+        <Category Name="Hardware Management">
+            <Command Description="" DisplayName="Get Port State" Name="get_port_state"/>
+        </Category>
+        <Category Name="App Management">
+            <Command Description="Run test specified in 'Test Name' attribute" DisplayName="Run Test" Name="run_test"/>
+        </Category>
+        <Category Name="Hidden Commands">
+            <Command Name="health_check" Tags="" Description="Checks if the device is up and connectable"/>
+            <Command Name="orchestration_save">
+                <Parameters>
+                    <Parameter Name="mode" Type="Lookup" Mandatory="True" AllowedValues="shallow,deep"
+                               DefaultValue="shallow"
+                               Description="Snapshot save mode, can be one of two values 'shallow' (default) or 'deep'"/>
+                    <Parameter Name="custom_params" Type="String" Mandatory="False" DefaultValue=""
+                               Description=" Set of custom parameters for the save operation"/>
+
+                </Parameters>
+            </Command>
+            <Command Name="orchestration_restore">
+                <Parameters>
+                    <Parameter Name="saved_details" Type="String" Mandatory="True" DefaultValue=""
+                               Description="A JSON string representing the state to restore including saved artifacts and info"/>
+                </Parameters>
+            </Command>
+        </Category>
+
+    </Layout>
+</Driver>

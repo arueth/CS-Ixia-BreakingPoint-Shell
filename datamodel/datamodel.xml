@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataModelInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
+    <Attributes>
+        <AttributeInfo Name="User" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Password" Type="Password" DefaultValue="3M3u7nkDzxWb0aJ/IZYeWw==" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Enable Password" Type="Password" DefaultValue="3M3u7nkDzxWb0aJ/IZYeWw==" IsReadOnly="false"
+                       Description="The Enable password is required by some CLI protocols such as Telnet">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Power Management" Type="Boolean" DefaultValue="False" IsReadOnly="false"
+                       Description="Used by the power management orchestration, if enabled, to determine whether to automatically manage the device power status">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="System Name" Type="String" DefaultValue="" IsReadOnly="true"
+                       Description="A unique identifier for the device, if exists in the device terminal/os  ">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Port Description" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Port Speed" Type="String" DefaultValue="" IsReadOnly="true"
+                       Description="The port speed (e.g 10Gb/s, 40Gb/s, 100Mb/s)">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Version" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Vendor" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Displayed In Search Filter"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Location" Type="String" DefaultValue="" IsReadOnly="true"
+                       Description="The device physical location identifier. For example: Lab1/Floor2/Row5/Slot4">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Backup Location" Type="String" DefaultValue="" IsReadOnly="false"
+                       Description="Used by the save/restore orchestration to determine where backups should be saved">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Model" Type="String" DefaultValue="" IsReadOnly="true"
+                       Description="The device model. This information is typically used for abstract resource filtering.">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Displayed In Search Filter"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="SNMP Read Community" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="SNMP Write Community" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="SNMP V3 Password" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="SNMP V3 Private Key" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="SNMP V3 User" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="SNMP Version" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Sessions Concurrency Limit" Type="Numeric" DefaultValue="1" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Console Server IP Address" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Console User" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Console Password" Type="Password" DefaultValue="3M3u7nkDzxWb0aJ/IZYeWw=="
+                       IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Console Port" Type="Numeric" DefaultValue="0" IsReadOnly="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo xsi:type="LookupAttributeDetails" Name="CLI Connection Type" Type="Lookup" DefaultValue="Auto"
+                       IsReadOnly="false" IsCommand="false">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+            <LookupValues>
+                <LookupValue NumericValue="0" StringValue="Auto"/>
+                <LookupValue NumericValue="1" StringValue="Console"/>
+                <LookupValue NumericValue="2" StringValue="SSH"/>
+                <LookupValue NumericValue="3" StringValue="Telnet"/>
+                <LookupValue NumericValue="4" StringValue="TCP"/>
+            </LookupValues>
+        </AttributeInfo>
+        <AttributeInfo Name="Serial Number" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="MAC Address" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="IPv4 Address" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="IPv6 Address" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="Test Name" Type="String" DefaultValue="" IsReadOnly="false"
+                       Description="Name of test to execute with the 'Run Test' command">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+            </Rules>
+        </AttributeInfo>
+    </Attributes>
+    <ResourceFamilies>
+        <ResourceFamily Name="Generic Resource" IsConnectable="false" IsLockedByDefault="true" Description=""
+                        IsSearchable="true" ResourceType="Resource">
+            <AttachedAttributes>
+            </AttachedAttributes>
+            <AttributeValues>
+            </AttributeValues>
+            <Models>
+            </Models>
+            <Categories/>
+        </ResourceFamily>
+        <ResourceFamily Name="Port" IsSearchable="true" IsConnectable="true" IsLockedByDefault="true">
+            <AttachedAttributes/>
+            <AttributeValues/>
+            <Models>
+                <ResourceModel Name="Resource Port" Description="" SupportsConcurrentCommands="false">
+                    <AttachedAttributes>
+                        <AttachedAttribute Name="MAC Address" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="IPv4 Address" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="IPv6 Address" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="Port Speed" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+
+                    </AttachedAttributes>
+                    <AttributeValues>
+                        <AttributeValue Name="MAC Address" Value=""/>
+                        <AttributeValue Name="IPv4 Address" Value=""/>
+                        <AttributeValue Name="IPv6 Address" Value=""/>
+                        <AttributeValue Name="Port Speed" Value=""/>
+
+                    </AttributeValues>
+                    <ParentModels>
+                        <ParentModelName>Ixia BreakingPoint</ParentModelName>
+                    </ParentModels>
+                    <Drivers/>
+                    <Scripts/>
+                </ResourceModel>
+            </Models>
+            <Categories/>
+        </ResourceFamily>
+        <ResourceFamily Name="Power Port" IsConnectable="true" IsLockedByDefault="true" Description=""
+                        IsSearchable="true">
+            <AttachedAttributes/>
+            <AttributeValues/>
+            <Models>
+                <ResourceModel Name="Generic Power Port" Description="" SupportsConcurrentCommands="false">
+                    <AttachedAttributes>
+                        <AttachedAttribute Name="Model" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="Serial Number" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="Version" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="Port Description" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                    </AttachedAttributes>
+                    <AttributeValues>
+                        <AttributeValue Name="Model" Value=""/>
+                        <AttributeValue Name="Serial Number" Value=""/>
+                        <AttributeValue Name="Version" Value=""/>
+                        <AttributeValue Name="Port Description" Value=""/>
+                    </AttributeValues>
+                    <ParentModels>
+                        <ParentModelName>Ixia BreakingPoint</ParentModelName>
+                    </ParentModels>
+                    <Drivers/>
+                    <Scripts/>
+                </ResourceModel>
+            </Models>
+            <Categories/>
+        </ResourceFamily>
+    </ResourceFamilies>
+    <DriverDescriptors>
+        <DriverDescriptor Name="Ixia BreakingPoint Driver" DriverType="PythonDriver"/>
+    </DriverDescriptors>
+</DataModelInfo>

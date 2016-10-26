@@ -1,0 +1,7 @@
+shell:
+    name: Ixia BreakingPoint
+    author: Aaron Rueth
+    email: aaron.r@quali.com
+    description: Ixia BreakingPoint Shell
+    version: 1.0.0
+    driver_name: Ixia BreakingPoint Driver
