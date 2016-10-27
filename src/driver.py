@@ -1,10 +1,10 @@
 from bpsRest import *
-from pprint import pprint
 from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.shell.core.resource_driver_interface import ResourceDriverInterface
 from cloudshell.shell.core.driver_context import InitCommandContext, ResourceCommandContext, AutoLoadCommandContext, \
     AutoLoadAttribute, AutoLoadResource, AutoLoadDetails
+from re import match
 
 
 class IxiaBreakingPointDriver(ResourceDriverInterface):
@@ -13,7 +13,6 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         Destroy the driver session, this function is called everytime a driver instance is destroyed
         This is a good place to close any open sessions, finish writing to log files
         """
-        self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] Logging out" % self.resource_name)
         self.bps_session.logout()
 
     def __init__(self):
@@ -22,8 +21,16 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         """
         self.bps_session = None
         self.cs_session = None
+        self.last_test_id = None
+        self.last_test_name = None
+        self.logger = None
+        self.requested_route = None
+        self.reservation_description = None
         self.reservation_id = None
         self.resource_name = None
+        self.test_id = None
+        self.test_name = None
+        self.topology_attribute = None
 
     def initialize(self, context):
         """
@@ -35,6 +42,8 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         self.logger = get_qs_logger()
         self.resource_name = context.resource.name
 
+        return
+
     def get_port_state(self, context):
         self._bps_session_handler(context)
         self._cs_session_handler(context)
@@ -42,55 +51,138 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
 
         port_state = self.bps_session.portsState()
         self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                        "[%s] Port state:\n%s" % (
-                                                            self.resource_name, pprint(port_state)))
+                                                        "[%s] Port state: %s" %
+                                                        (self.resource_name,
+                                                         port_state))
+        return
 
-        return port_state
-
-    def run_test(self, context):
+    def get_real_time_statistics(self, context):
         self._bps_session_handler(context)
         self._cs_session_handler(context)
         self.reservation_id = context.reservation.reservation_id
 
-        res = self.cs_session.GetReservationDetails(self.reservation_id)
-        topo_att = res.ReservationDescription.TopologiesResourcesAttributeInfo
-        for item in topo_att:
-            if item.AttributeName == 'Test Name':
-                self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                                str(item.AttributeValue).strip('[]\''))
-                test_name = str(item.AttributeValue).strip('[]\'')
+        if self.test_id is None:
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] No test running" %
+                                                            self.resource_name)
+        else:
+            rts = self.bps_session.getRTS(self.test_id)
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] %s(%s) statistics: %s" %
+                                                            (self.resource_name,
+                                                             self.test_name,
+                                                             self.test_id,
+                                                             rts))
+        return
+
+    def get_test_progress(self, context):
+        self._bps_session_handler(context)
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
+
+        if self.test_id is None:
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] No test running" %
+                                                            self.resource_name)
+        else:
+            progress = self.bps_session.getTestProgress(self.test_id)
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] %s(%s) %s%% complete" %
+                                                            (self.resource_name,
+                                                             self.test_name,
+                                                             self.test_id,
+                                                             int(progress)))
+        return
+
+    def get_test_results(self, context):
+        self._bps_session_handler(context)
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
+
+        test_id = self.test_id if self.test_id is not None else self.last_test_id
+        test_name = self.test_name if self.test_name is not None else self.last_test_name
+        if test_id is None:
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] No results available" %
+                                                            self.resource_name)
+        else:
+            raw_test_result = self.bps_session.getTestResult(test_id)
+            test_result = raw_test_result[raw_test_result.rindex(' ') + 1:]
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] %s(%s) %s" %
+                                                            (self.resource_name,
+                                                             test_name,
+                                                             test_id,
+                                                             test_result))
+        return
+
+    def release_ports(self, slot, port_list):
+        self.bps_session.unreservePorts(slot=slot, portList=port_list)
+
+    def reserve_ports(self, slot, port_list, group, force=True):
+        self.bps_session.reservePorts(slot=slot, portList=port_list, group=group, force=force)
+
+        return
+
+    def start_test(self, context):
+        self._bps_session_handler(context)
+        self._refresh_reservation_details(context)
 
         self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                        "[%s] Reserving ports" % self.resource_name)
-        self.bps_session.reservePorts(slot=1, portList=[0, 1], group=1, force=True)
+                                                        "[%s] topology_attribute: %s" %
+                                                        (self.resource_name,
+                                                         self.topology_attribute))
 
+        last_test_name = self.test_name
+        self.test_name = self.topology_attribute['Test Name']
+
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                        "[%s] test_name: %s" %
+                                                        (self.resource_name,
+                                                         self.test_name))
         try:
-            test_id = self.bps_session.runTest(modelname=test_name, group=1)
+            last_test_id = self.test_id
+            self.test_id = self.bps_session.runTest(modelname=self.test_name, group=2)
         except BPS.TestException as err:
             self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                            "[%s] Failed to start test, return code: %s - %s" % (
-                                                                self.resource_name, err.status_code, err.message))
+                                                            "[%s] Failed to start test, return code: %s - %s" %
+                                                            (self.resource_name,
+                                                             err.status_code,
+                                                             err.message))
             raise
         except:
             raise
 
-        self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] Running test '%s' with ID %s" % (
-            self.resource_name, test_name, test_id))
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] %s(%s) started" %
+                                                        (self.resource_name,
+                                                         self.test_name,
+                                                         self.test_id))
+        self.last_test_id = last_test_id
+        self.last_test_name = last_test_name
 
-        progress = 0
-        while (progress < 100):
-            progress = self.bps_session.getRTS(test_id)
-            # self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "%s%%" % progress)
-            time.sleep(1)
-        time.sleep(1)
+        return
 
-        test_result = self.bps_session.getTestResult(test_id)
-        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                        "[%s] %s" % (self.resource_name, test_result))
+    def stop_test(self, context):
+        self._bps_session_handler(context)
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
 
-        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                        "[%s] Releasing ports" % self.resource_name)
-        self.bps_session.unreservePorts(slot=1, portList=[0, 1])
+        if self.test_id is None:
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] No test running" %
+                                                            self.resource_name)
+        else:
+            self.bps_session.stopTest(self.test_id)
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] %s(%s) stopped" %
+                                                            (self.resource_name,
+                                                             self.test_name,
+                                                             self.test_id))
+            self.last_test_id = self.test_id
+            self.last_test_name = self.test_name
+            self.test_id = None
+            self.test_name = None
+
+        return
 
     def _cs_session_handler(self, context):
         for attempt in range(3):
@@ -105,7 +197,10 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         else:
             raise
 
+        return
+
     def _bps_session_handler(self, context):
+        self._cs_session_handler(context)
         self.resource_name = context.resource.name
 
         address = context.resource.address
@@ -119,8 +214,45 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
                                                             "[%s] Failed to login, return code: %s - %s" %
                                                             (self.resource_name,
                                                              err.status_code,
-                                                             err.message)
-                                                            )
+                                                             err.message))
+        return
+
+    def _covert_topologies_resources_attribute_info(self):
+        dictionary = {}
+        for resource_attribute in self.reservation_description.TopologiesResourcesAttributeInfo:
+            if resource_attribute.Name == self.resource_name:
+                dictionary[resource_attribute.AttributeName] = resource_attribute.AttributeValue[0]
+
+        return dictionary
+
+    def _covert_requested_routes_info(self):
+        dictionary = {}
+        for requested_route in self.reservation_description.RequestedRoutesInfo:
+            source = match(r'(?P<resource_name>.+)/Slot (?P<slot>\d+)/Port (?P<port>\d+)', requested_route.Source)
+            if source is not None and source.group('resource_name') == self.resource_name:
+                if source.group('slot') not in dictionary:
+                    dictionary[source.group('slot')] = {}
+
+                dictionary[source.group('slot')][source.group('port')] = requested_route.Target
+
+            target = match(r'(?P<resource_name>.+)/Slot (?P<slot>\d+)/Port (?P<port>\d+)', requested_route.Target)
+            if target is not None and target.group('resource_name') == self.resource_name:
+                if target.group('slot') not in dictionary:
+                    dictionary[target.group('slot')] = {}
+
+                dictionary[target.group('slot')][target.group('port')] = requested_route.Source
+
+        return dictionary
+
+    def _refresh_reservation_details(self, context):
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
+
+        self.reservation_description = self.cs_session.GetReservationDetails(self.reservation_id).ReservationDescription
+        self.requested_route = self._covert_requested_routes_info()
+        self.topology_attribute = self._covert_topologies_resources_attribute_info()
+
+        return
 
     # <editor-fold desc="Orchestration Save and Restore Standard">
     def orchestration_save(self, context, cancellation_context, mode, custom_params=None):

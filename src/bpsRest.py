@@ -146,7 +146,16 @@ class BPS:
         if (enableRequestPrints):
             self.pretty_print_requests(r)
         if (r.status_code == 200):
-            print "RTS Values: ", r.json().get('rts')
+            return json.loads(r.text).get('rts')
+
+    def getTestProgress(self, runid, enableRequestPrints=False):
+        service = 'https://' + self.ipstr + '/api/v1/bps/tests/operations/getRTS'
+        jheaders = {'content-type': 'application/json'}
+        jdata = json.dumps({'runid': runid})
+        r = self.session.post(service, data=jdata, headers=jheaders, verify=False)
+        if (enableRequestPrints):
+            self.pretty_print_requests(r)
+        if (r.status_code == 200):
             return json.loads(r.text).get('progress')
 
     def getTestResult(self, runid, enableRequestPrints=False):

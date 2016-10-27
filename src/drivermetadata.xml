@@ -4,8 +4,13 @@
         <Category Name="Hardware Management">
             <Command Description="" DisplayName="Get Port State" Name="get_port_state"/>
         </Category>
-        <Category Name="App Management">
-            <Command Description="Run test specified in 'Test Name' attribute" DisplayName="Run Test" Name="run_test"/>
+        <Category Name="Application Management">
+            <Command Description="Start test" DisplayName="Start Test" Name="start_test"/>
+            <Command Description="Get real time statistics" DisplayName="Get Real Time Statistics"
+                     Name="get_real_time_statistics"/>
+            <Command Description="Get test progress" DisplayName="Get Test Progress" Name="get_test_progress"/>
+            <Command Description="Get test results" DisplayName="Get Test Results" Name="get_test_results"/>
+            <Command Description="Stop running test" DisplayName="Stop Test" Name="stop_test"/>
         </Category>
         <Category Name="Hidden Commands">
             <Command Name="health_check" Tags="" Description="Checks if the device is up and connectable"/>
@@ -24,6 +29,10 @@
                     <Parameter Name="saved_details" Type="String" Mandatory="True" DefaultValue=""
                                Description="A JSON string representing the state to restore including saved artifacts and info"/>
                 </Parameters>
+            </Command>
+            <Command Description="Release ports" DisplayName="Release Ports" Name="release_ports">
+            </Command>
+            <Command Description="Reserve ports" DisplayName="Reserve Ports" Name="reserve_ports">
             </Command>
         </Category>
 

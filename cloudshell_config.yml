@@ -1,6 +1,6 @@
 install:
     host: localhost
     port: 9000
-    username: YOUR_USERNAME
-    password: YOUR_PASSWORD
+    username: admin
+    password: admin
     domain: Global
