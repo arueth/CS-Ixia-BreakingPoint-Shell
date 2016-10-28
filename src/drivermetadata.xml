@@ -2,17 +2,18 @@
         Name="Ixia BreakingPoint Driver" Version="1.0.0">
     <Layout>
         <Category Name="Hardware Management">
-            <Command Description="" DisplayName="Get Port State" Name="get_port_state"/>
+            <Command Description="Get state of ports" DisplayName="Get Port State" Name="get_port_state"/>
         </Category>
         <Category Name="Application Management">
             <Command Description="Start test" DisplayName="Start Test" Name="start_test"/>
             <Command Description="Get real time statistics" DisplayName="Get Real Time Statistics"
                      Name="get_real_time_statistics"/>
             <Command Description="Get test progress" DisplayName="Get Test Progress" Name="get_test_progress"/>
-            <Command Description="Get test results" DisplayName="Get Test Results" Name="get_test_results"/>
+            <Command Description="Get test result" DisplayName="Get Test Result" Name="get_test_result"/>
             <Command Description="Stop running test" DisplayName="Stop Test" Name="stop_test"/>
         </Category>
         <Category Name="Hidden Commands">
+            <Command Name="cleanup" Tags="" Description="Cleanup instance"/>
             <Command Name="health_check" Tags="" Description="Checks if the device is up and connectable"/>
             <Command Name="orchestration_save">
                 <Parameters>
@@ -30,10 +31,9 @@
                                Description="A JSON string representing the state to restore including saved artifacts and info"/>
                 </Parameters>
             </Command>
-            <Command Description="Release ports" DisplayName="Release Ports" Name="release_ports">
-            </Command>
-            <Command Description="Reserve ports" DisplayName="Reserve Ports" Name="reserve_ports">
-            </Command>
+            <Command Description="Release ports" DisplayName="Release Ports" Name="release_ports"/>
+            <Command Description="Reserve ports" DisplayName="Reserve Ports" Name="reserve_ports"/>
+            <Command Description="Teardown resource" DisplayName="Teardown" Name="teardown"/>
         </Category>
 
     </Layout>

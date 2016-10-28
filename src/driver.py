@@ -8,13 +8,6 @@ from re import match
 
 
 class IxiaBreakingPointDriver(ResourceDriverInterface):
-    def cleanup(self):
-        """
-        Destroy the driver session, this function is called everytime a driver instance is destroyed
-        This is a good place to close any open sessions, finish writing to log files
-        """
-        self.bps_session.logout()
-
     def __init__(self):
         """
         ctor must be without arguments, it is created with reflection at run time
@@ -24,6 +17,7 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         self.last_test_id = None
         self.last_test_name = None
         self.logger = None
+        self.port_group = None
         self.requested_route = None
         self.reservation_description = None
         self.reservation_id = None
@@ -31,6 +25,16 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         self.test_id = None
         self.test_name = None
         self.topology_attribute = None
+        self.topology_reserved_resource = None
+
+        return
+
+    def cleanup(self):
+        """
+        Destroy the driver session, this function is called everytime a driver instance is destroyed
+        This is a good place to close any open sessions, finish writing to log files
+        """
+        return
 
     def initialize(self, context):
         """
@@ -94,7 +98,7 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
                                                              int(progress)))
         return
 
-    def get_test_results(self, context):
+    def get_test_result(self, context):
         self._bps_session_handler(context)
         self._cs_session_handler(context)
         self.reservation_id = context.reservation.reservation_id
@@ -116,11 +120,39 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
                                                              test_result))
         return
 
-    def release_ports(self, slot, port_list):
-        self.bps_session.unreservePorts(slot=slot, portList=port_list)
+    def release_ports(self):
+        raw_port_group = self.topology_reserved_resource['Port Group'].keys()[0]
+        self.port_group = int(raw_port_group[raw_port_group.rindex(' ') + 1:])
 
-    def reserve_ports(self, slot, port_list, group, force=True):
-        self.bps_session.reservePorts(slot=slot, portList=port_list, group=group, force=force)
+        for slot, ports in self.requested_route.iteritems():
+            port_list = ports.keys()
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] Releasing Slot: %s, Ports: %s from Port Group %s" %
+                                                            (self.resource_name,
+                                                             slot,
+                                                             port_list,
+                                                             self.port_group))
+
+            self.bps_session.unreservePorts(slot=slot, portList=port_list)
+
+        return
+
+    def reserve_ports(self):
+        raw_port_group = self.topology_reserved_resource['Port Group'].keys()[0]
+        self.port_group = int(raw_port_group[raw_port_group.rindex(' ') + 1:])
+
+        for slot, ports in self.requested_route.iteritems():
+            port_list = ports.keys()
+            self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
+                                                            "[%s] Reserving Slot: %s, Ports: %s for Port Group %s" %
+                                                            (self.resource_name,
+                                                             slot,
+                                                             port_list,
+                                                             self.port_group))
+            self.bps_session.reservePorts(slot=slot,
+                                          portList=port_list,
+                                          group=self.port_group,
+                                          force=True)
 
         return
 
@@ -128,25 +160,19 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         self._bps_session_handler(context)
         self._refresh_reservation_details(context)
 
-        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                        "[%s] topology_attribute: %s" %
-                                                        (self.resource_name,
-                                                         self.topology_attribute))
+        self.reserve_ports()
 
         last_test_name = self.test_name
         self.test_name = self.topology_attribute['Test Name']
 
-        self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                        "[%s] test_name: %s" %
-                                                        (self.resource_name,
-                                                         self.test_name))
         try:
             last_test_id = self.test_id
-            self.test_id = self.bps_session.runTest(modelname=self.test_name, group=2)
+            self.test_id = self.bps_session.runTest(modelname=self.test_name, group=self.port_group)
         except BPS.TestException as err:
             self.cs_session.WriteMessageToReservationOutput(self.reservation_id,
-                                                            "[%s] Failed to start test, return code: %s - %s" %
+                                                            "[%s] Failed to start %s, return code: %s - %s" %
                                                             (self.resource_name,
+                                                             self.test_name,
                                                              err.status_code,
                                                              err.message))
             raise
@@ -184,18 +210,16 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
 
         return
 
-    def _cs_session_handler(self, context):
-        for attempt in range(3):
-            try:
-                self.cs_session = CloudShellAPISession(host=context.connectivity.server_address,
-                                                       token_id=context.connectivity.admin_auth_token,
-                                                       domain=context.reservation.domain)
-            except:
-                continue
-            else:
-                break
-        else:
-            raise
+    def teardown(self, context):
+        self._bps_session_handler(context)
+        self._cs_session_handler(context)
+        self.reservation_id = context.reservation.reservation_id
+
+        self.cs_session.WriteMessageToReservationOutput(self.reservation_id, "[%s] Tearing down" % self.resource_name)
+        
+        self.stop_test(context)
+        self.release_ports()
+        self.bps_session.logout()
 
         return
 
@@ -244,6 +268,17 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
 
         return dictionary
 
+    def _covert_topologies_reserved_resources(self):
+        dictionary = {}
+        for reserved_resource in self.reservation_description.TopologiesReservedResources:
+            if reserved_resource.Name.startswith(self.resource_name):
+                if reserved_resource.ResourceModelName not in dictionary:
+                    dictionary[reserved_resource.ResourceModelName] = {}
+
+                dictionary[reserved_resource.ResourceModelName][reserved_resource.Alias] = reserved_resource
+
+        return dictionary
+
     def _refresh_reservation_details(self, context):
         self._cs_session_handler(context)
         self.reservation_id = context.reservation.reservation_id
@@ -251,6 +286,22 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         self.reservation_description = self.cs_session.GetReservationDetails(self.reservation_id).ReservationDescription
         self.requested_route = self._covert_requested_routes_info()
         self.topology_attribute = self._covert_topologies_resources_attribute_info()
+        self.topology_reserved_resource = self._covert_topologies_reserved_resources()
+
+        return
+
+    def _cs_session_handler(self, context):
+        for attempt in range(3):
+            try:
+                self.cs_session = CloudShellAPISession(host=context.connectivity.server_address,
+                                                       token_id=context.connectivity.admin_auth_token,
+                                                       domain=context.reservation.domain)
+            except:
+                continue
+            else:
+                break
+        else:
+            raise
 
         return
 
@@ -332,7 +383,6 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
 
 
     # <editor-fold desc="Discovery">
-
     def get_inventory(self, context):
         """
         Discovers the resource structure and attributes.
@@ -375,7 +425,6 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
 
 
     # <editor-fold desc="Health Check">
-
     def health_check(self, cancellation_context):
         """
         Checks if the device is up and connectable
@@ -383,13 +432,4 @@ class IxiaBreakingPointDriver(ResourceDriverInterface):
         :exception Exception: Raises an error if cannot connect
         """
         pass
-
-    # </editor-fold>
-
-
-    def cleanup(self):
-        """
-        Destroy the driver session, this function is called everytime a driver instance is destroyed
-        This is a good place to close any open sessions, finish writing to log files
-        """
-        pass
+        # </editor-fold>
